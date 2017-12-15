@@ -1,5 +1,7 @@
 from django.shortcuts import HttpResponse,render
 class CrudConfig(object):
+
+    list_display=[]   #自定义显示列
     def __init__(self,model_class,site):
         self.model_class=model_class
         self.site=site
@@ -14,15 +16,43 @@ class CrudConfig(object):
             url(r'^delete/(\d+)/$', self.delete_view, name='%s_%s_delete' % app_model_name),
             url(r'^change/(\d+)/$', self.change_view, name='%s_%s_change' % app_model_name),
         ]
+        print(patterns)
         return patterns
 
-    def changelist_view(self,*args,**kwargs):
-        return HttpResponse("列表")
-    def add_view(self,*args,**kwargs):
+    def changelist_view(self,request,*args,**kwargs):
+
+        #处理表头的数据
+        def headview():
+            if not self.list_display:
+                yield self.model_class._meta.model_name
+            for field_name in self.list_display:
+                if isinstance(field_name,str):
+                    #根据类和对象名获取字段对象的verbose_name
+                    yield self.model_class._meta.get_field(field_name).verbose_name
+                else:
+                    yield field_name(self,is_header=True)
+        #处理表中的数据
+        def data_view():
+            data_list=self.model_class.objects.all()  #当前表中所对应记录的query_set对象
+            for obj in data_list:
+                temp=[]
+                for field_name in self.list_display:
+                    if isinstance(field_name,str):
+                        val=getattr(obj,field_name) #val是每个对象字段对应的值
+                    else:
+                        val=field_name(self,obj)
+                    temp.append(val)
+                yield temp
+            if not self.list_display:
+                for obj in data_list:
+                    yield [obj,]
+        return render(request,"crud/changelist.html",{"data_list":data_view(),"head_list":headview()})
+
+    def add_view(self,request,*args,**kwargs):
         return HttpResponse("增加")
-    def delete_view(self,*args,**kwargs):
+    def delete_view(self,request,*args,**kwargs):
         return HttpResponse("删除")
-    def change_view(self,*args,**kwargs):
+    def change_view(self,request,*args,**kwargs):
         return HttpResponse("修改")
 
 

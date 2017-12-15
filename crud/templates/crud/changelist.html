@@ -11,7 +11,14 @@
 <body>
 <div class="container">
     <h2>列表页面</h2>
-    <table class="table table-bordered">
+    {% if show_add_btn %}
+        <div class="pull-right">
+            <a class="btn btn-default" href="{{ add_url}}">添加</a>
+        </div>
+        <hr>
+    {% endif %}
+
+    <table class="table table-bordered table-striped">
         <thead>
         <tr>
             {% for head in head_list %}

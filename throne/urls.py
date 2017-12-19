@@ -16,8 +16,13 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 from crud.service import throne
+from app02 import views
+
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^crud/', throne.site.urls),
+    url(r'^hosts/', views.hosts),
+    url(r'^add/', views.add),
+    url(r'^editor/(\d+)/', views.editor),
 ]
 

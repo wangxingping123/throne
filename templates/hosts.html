@@ -1,0 +1,52 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Title</title>
+    <link rel="stylesheet" href="{% static "bootstrap-3.3.7-dist/css/bootstrap.min.css" %}">
+    <style>
+        a{padding: 2px 6px}
+        .active{background-color: #2aabd2}
+    </style>
+</head>
+<body>
+<div class="container">
+<h2>学生页面</h2>
+    <a class="btn btn-primary" href="/add/?{{ condition }}">添加</a>
+    <a class="btn btn-primary" href="/hosts/?gender=1">男生</a>
+    <a class="btn btn-primary" href="/hosts/?gender=2">女生</a>
+
+ <table class="table table-bordered">
+    <thead>
+    <tr>
+        <th>id</th>
+        <th>姓名</th>
+        <th>性别</th>
+        <th>年龄</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    {% for student in student_list %}
+    <tr>
+    <td>{{ student.id }}</td>
+    <td>{{ student.name }}</td>
+    <td>{{ student.get_gender_display}}</td>
+    <td>{{ student.age }}</td>
+    <td><a href="/editor/{{ student.id }}/?{{ condition }}">编辑</a></td>
+    </tr>
+    {% endfor %}
+
+</table>
+
+<ul class="pagination pull-right">
+  {{ pagelist|safe }}
+</ul>
+
+</div>
+
+
+</body>
+</html>

@@ -11,40 +11,79 @@
 <body>
 <div class="container">
     <h2>列表页面</h2>
-    {% if show_add_btn %}
+
+    {% if obj.show_add_btn %}
         <div class="pull-right">
-            <a class="btn btn-default" href="{{ add_url}}">添加</a>
+            <a class="btn btn-default" href="{{ obj.add_url}}?{{ obj.condition }}">添加</a>
         </div>
         <hr>
+    {% endif %}
+
+    {% if obj.show_search %}
+    <form>
+        <div class="form-group">
+            <input class="form-control" name="{{ obj.search_key }}" value="{{ obj.condition_key }}" type="text" placeholder="请输入搜索条件" style="display: inline-block;width: 200px">
+            <button class="btn btn-primary"><span class="glyphicon glyphicon-search"></span></button>
+        </div>
+    </form>
+    {% endif %}
+<form method="post">
+    {% if obj.show_actions %}
+        {% csrf_token %}
+        <div class="form-group">
+        <select name="action"  class="form-control" style="display: inline-block;width: 200px">
+            <option value="" >--------------</option>
+            {% for foo in obj.mudify_actions %}
+                <option value="{{ foo.name }}" >{{ foo.text }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-primary">执行</button>
+        </div>
     {% endif %}
 
     <table class="table table-bordered table-striped">
         <thead>
         <tr>
-            {% for head in head_list %}
+            {% for head in obj.get_header %}
             <th>{{ head }}</th>
             {% endfor %}
 
         </tr>
         </thead>
 
-        <tbody>
-        {% for data in data_list %}
+        <tbody class="tbody">
+        {% for data in obj.get_data_list %}
             <tr>
             {% for field in data %}
             <td>{{ field }}</td>
             {% endfor %}
-
             </tr>
         {% endfor %}
-
         </tbody>
-
     </table>
-
+</form>
+<div class="pull-right">
+    <ul class="pagination">
+        {{ obj.page_html|safe }}
+    </ul>
+</div>
 
 </div>
 
+<script src="{% static "jquery-3.2.1.min.js" %}"></script>
+<script>
+    $("#select_all").click(function () {
+        var checkbox=$(".tbody input[type='checkbox']");
+        if (checkbox.attr("checked")){
+             checkbox.removeAttr("checked")
+        }
+        else{
+            checkbox.attr("checked","checked")
 
+        }
+
+
+    })
+</script>
 </body>
 </html>

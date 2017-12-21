@@ -49,55 +49,52 @@ class FilterRow(object):
         current_id=self.request.GET.get(self.field_obj.field_name,'')
         current_id_list=self.request.GET.getlist(self.field_obj.field_name,'')
         if self.field_obj.field_name in params:
-            val=params.pop(self.field_obj.field_name)
+            origin_list=params.pop(self.field_obj.field_name)
             url='<a href="{0}?{1}">全部</a>'.format(self.request.path_info,params.urlencode())
-            params.setlist(self.field_obj.field_name,val)
             yield mark_safe(url)
+            params.setlist(self.field_obj.field_name, origin_list)
         else:
             url='<a class="active" href="{0}?{1}">全部</a>'.format(self.request.path_info,params.urlencode())
             yield mark_safe(url)
 
-        if self.field_obj.is_choices:
-             for item in self.datalist:
-                id,con=str(item[0]),str(item[1])
-                params[self.field_obj.field_name]=id   #设置过滤条件
-                if id in current_id:
-                    url=mark_safe('<a class="active" href="{0}?{1}">{2}</a>'.format(self.request.path_info,params.urlencode(),con))
-                else:
-                    url=mark_safe('<a href="{0}?{1}">{2}</a>'.format(self.request.path_info,params.urlencode(),con))
-                yield url
-        else:
-            if not self.field_obj.is_multi:
-                for obj in self.datalist:
-                    pk=obj.pk
-                    params[self.field_obj.field_name]=pk  #设置过滤条件
-                    if str(pk) in current_id:
-                        url = '<a class="active" href="{0}?{1}">{2}</a>'.format(self.request.path_info, params.urlencode(), obj)
-                    else:
-                        url='<a href="{0}?{1}">{2}</a>'.format(self.request.path_info,params.urlencode(),obj)
-
-                    yield mark_safe(url)
+        for val in self.datalist:
+            if self.field_obj.is_choices:
+                pk, text = str(val[0]), val[1]
             else:
-                #多选
-                _params = copy.deepcopy(params)
-                id_list = _params.getlist(self.field_obj.field_name)
-                print('id_list',id_list,'current_id_list',current_id_list)
-                for obj in self.datalist:
-                    pk=str(obj.pk)
+                pk, text = str(val.pk), str(val)
+            if self.field_obj.is_choices:
+                params[self.field_obj.field_name]=pk   #设置过滤条件
+                if pk in current_id:
+                    url=mark_safe('<a class="active" href="{0}?{1}">{2}</a>'.format(self.request.path_info,params.urlencode(),text))
+                else:
+                    url=mark_safe('<a href="{0}?{1}">{2}</a>'.format(self.request.path_info,params.urlencode(),text))
+                yield url
+            else:
+                if not self.field_obj.is_multi:
+                    params[self.field_obj.field_name]=pk  #设置过滤条件
+                    if pk in current_id:
+                        url = '<a class="active" href="{0}?{1}">{2}</a>'.format(self.request.path_info, params.urlencode(), text)
+                    else:
+                        url='<a href="{0}?{1}">{2}</a>'.format(self.request.path_info,params.urlencode(),text)
+                    yield mark_safe(url)
+                else:
+                    #多选
+                    _params = copy.deepcopy(params)
+                    id_list = _params.getlist(self.field_obj.field_name)
+
                     if pk in current_id_list:
                         id_list.remove(pk)
                         _params.setlist(self.field_obj.field_name, id_list)
                         url = "{0}?{1}".format(self.request.path_info, _params.urlencode())
-                        yield mark_safe("<a class='active' href='{0}'>{1}</a>".format(url, obj))
+                        yield mark_safe("<a class='active' href='{0}'>{1}</a>".format(url, text))
                     else:
                         id_list.append(pk)
-                        
                         # params中被重新赋值
                         _params.setlist(self.field_obj.field_name, id_list)
-
+            
                         # 创建URL
                         url = "{0}?{1}".format(self.request.path_info, _params.urlencode())
-                        yield mark_safe("<a href='{0}'>{1}</a>".format(url, obj))
+                        yield mark_safe("<a href='{0}'>{1}</a>".format(url, text))
 
 
 class ChangeList(object):

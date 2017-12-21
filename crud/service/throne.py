@@ -1,3 +1,4 @@
+import copy
 from django.shortcuts import HttpResponse,render,redirect
 from django.utils.safestring import mark_safe
 from crud.service.pager import Pagination
@@ -6,9 +7,102 @@ from django.forms import ModelForm
 from django.http import QueryDict
 from django.db.models import Q
 
+class FilterOption(object):
+    '''
+    用户在传组合搜索子段时调用，
+    参数  field:组合搜索的字段名名
+        is_choices:是否是选择类型
+        is_multi:是否是多选类型
+        condition:过滤条件
+    '''
+    def __init__(self,field_name,is_choices=False,is_multi=False,condition=None):
+        self.field_name=field_name
+        self.is_choices=is_choices
+        self.is_multi=is_multi
+        self.condition=condition
+
+    def get_queryset(self,_field):
+        #处理关联字段的函数
+        if self.condition:
+            return _field.rel.to.objects.filter(**self.condition)
+        return _field.rel.to.objects.all()
+
+    def get_choices(self,_field):
+        #处理选择的字段
+        return _field.choices
+
+class FilterRow(object):
+    '''这个类用来处理用户传出组合搜索字段下的数据'''
+    def __init__(self,changelist_obj,datalist,field_obj,request):
+        self.changelist_obj=changelist_obj
+        self.datalist=datalist
+        self.field_obj=field_obj
+        self.request=request
+
+    def __iter__(self):
+        #取出对应的字段名
+        field_name=self.field_obj.field_name
+        verbose_name=self.changelist_obj.model_class._meta.get_field(field_name).verbose_name
+        yield mark_safe('<span class="verbose_name">%s:</span>'%verbose_name)
+        params=copy.deepcopy(self.request.GET)   #拷贝当前过滤条件
+        params.mutable=True   #可更改状态
+        current_id=self.request.GET.get(self.field_obj.field_name,'')
+        current_id_list=self.request.GET.getlist(self.field_obj.field_name,'')
+        if self.field_obj.field_name in params:
+            val=params.pop(self.field_obj.field_name)
+            url='<a href="{0}?{1}">全部</a>'.format(self.request.path_info,params.urlencode())
+            params.setlist(self.field_obj.field_name,val)
+            yield mark_safe(url)
+        else:
+            url='<a class="active" href="{0}?{1}">全部</a>'.format(self.request.path_info,params.urlencode())
+            yield mark_safe(url)
+
+        if self.field_obj.is_choices:
+             for item in self.datalist:
+                id,con=str(item[0]),str(item[1])
+                params[self.field_obj.field_name]=id   #设置过滤条件
+                if id in current_id:
+                    url=mark_safe('<a class="active" href="{0}?{1}">{2}</a>'.format(self.request.path_info,params.urlencode(),con))
+                else:
+                    url=mark_safe('<a href="{0}?{1}">{2}</a>'.format(self.request.path_info,params.urlencode(),con))
+                yield url
+        else:
+            if not self.field_obj.is_multi:
+                for obj in self.datalist:
+                    pk=obj.pk
+                    params[self.field_obj.field_name]=pk  #设置过滤条件
+                    if str(pk) in current_id:
+                        url = '<a class="active" href="{0}?{1}">{2}</a>'.format(self.request.path_info, params.urlencode(), obj)
+                    else:
+                        url='<a href="{0}?{1}">{2}</a>'.format(self.request.path_info,params.urlencode(),obj)
+
+                    yield mark_safe(url)
+            else:
+                #多选
+                _params = copy.deepcopy(params)
+                id_list = _params.getlist(self.field_obj.field_name)
+                print('id_list',id_list,'current_id_list',current_id_list)
+                for obj in self.datalist:
+                    pk=str(obj.pk)
+                    if pk in current_id_list:
+                        id_list.remove(pk)
+                        _params.setlist(self.field_obj.field_name, id_list)
+                        url = "{0}?{1}".format(self.request.path_info, _params.urlencode())
+                        yield mark_safe("<a class='active' href='{0}'>{1}</a>".format(url, obj))
+                    else:
+                        id_list.append(pk)
+                        
+                        # params中被重新赋值
+                        _params.setlist(self.field_obj.field_name, id_list)
+
+                        # 创建URL
+                        url = "{0}?{1}".format(self.request.path_info, _params.urlencode())
+                        yield mark_safe("<a href='{0}'>{1}</a>".format(url, obj))
+
+
 class ChangeList(object):
     def __init__(self,config,request,data_list):
-
+        self.request=request
         self.config=config
         self.list_display=self.config.list_display
         self.model_class=self.config.model_class
@@ -40,6 +134,22 @@ class ChangeList(object):
             temp={"name":func.__name__,"text":func.short_desc}
             result.append(temp)
         return result
+
+    #组合搜索
+    def gen_comb_filter(self):
+
+        from django.db.models import ForeignKey,ManyToManyField
+        for field_obj in self.config.comb_filter:
+            _field=self.model_class._meta.get_field(field_obj.field_name)
+            if isinstance(_field,ForeignKey):
+                filter_row_obj=FilterRow(self,field_obj.get_queryset(_field),field_obj,self.request)
+            elif isinstance(_field,ManyToManyField):
+                filter_row_obj = FilterRow(self,field_obj.get_queryset(_field), field_obj, self.request)
+            else:
+                filter_row_obj = FilterRow(self,field_obj.get_choices(_field), field_obj, self.request)
+
+            yield filter_row_obj
+
 
     def get_header(self):
         # 生成表头的数据
@@ -116,6 +226,15 @@ class CrudConfig(object):
             for item in self.search_condition:
                 conditions.children.append((item, condition))
         return conditions
+
+    #组合搜索
+    comb_filter=[]   #自定义组合搜索的字段
+    def get_comb_filter(self):
+        result=[]
+        if self.comb_filter:
+            result.extend(self.comb_filter)
+        return result
+
     #批量操作相关
     show_actions=True       #是否显示批量操作框
     def get_show_actions(self):
@@ -206,7 +325,13 @@ class CrudConfig(object):
                 return ret
 
         conditions=self.get_conditions()
-        data_list = self.model_class.objects.filter(conditions) # 当前表中所对应记录的query_set对象
+        #取出组合搜索的过滤条件
+        filter_dic={}
+        for item in request.GET.keys():
+            for obj in self.get_comb_filter():
+                if item==obj.field_name:
+                    filter_dic['%s__in'%item]=request.GET.get(item)
+        data_list = self.model_class.objects.filter(conditions).filter(**filter_dic) # 当前表中所对应记录的query_set对象
         obj=ChangeList(self,request,data_list)
 
         return render(request,"crud/changelist.html",{"obj":obj})

@@ -1,4 +1,5 @@
 {% load staticfiles %}
+{% load change_form %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,7 +13,7 @@
 <body>
 <div class="container">
     <h2>修改页面</h2>
-    {% include "crud/form.html" %}
+    {% form form %}
 </div>
 
 </body>

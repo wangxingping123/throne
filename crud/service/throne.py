@@ -1,4 +1,5 @@
 import copy
+import json
 from django.shortcuts import HttpResponse,render,redirect
 from django.utils.safestring import mark_safe
 from crud.service.pager import Pagination
@@ -185,7 +186,7 @@ class CrudConfig(object):
     model_form_class=None #自定义modelform类
     search_key='key'    #自定义搜索的key
     search_condition=[] #自定义搜索的条件
-    show_search=True    #是否显示搜索框
+    show_search=False    #是否显示搜索框
 
     def __init__(self,model_class,site):
         self.model_class=model_class
@@ -233,7 +234,7 @@ class CrudConfig(object):
         return result
 
     #批量操作相关
-    show_actions=True       #是否显示批量操作框
+    show_actions=False       #是否显示批量操作框
     def get_show_actions(self):
         return self.show_actions
     actions = []  # 自定义批量操作(参数是对应的函数名)
@@ -322,26 +323,33 @@ class CrudConfig(object):
                 return ret
 
         conditions=self.get_conditions()
+
         #取出组合搜索的过滤条件
         filter_dic={}
         for item in request.GET.keys():
             for obj in self.get_comb_filter():
                 if item==obj.field_name:
-                    filter_dic['%s__in'%item]=request.GET.get(item)
-        data_list = self.model_class.objects.filter(conditions).filter(**filter_dic) # 当前表中所对应记录的query_set对象
+                    filter_dic['%s__in'%item]=request.GET.getlist(item)
+        data_list = self.model_class.objects.filter(conditions).filter(**filter_dic).distinct() # 当前表中所对应记录的query_set对象
         obj=ChangeList(self,request,data_list)
 
         return render(request,"crud/changelist.html",{"obj":obj})
 
     def add_view(self,request):
+
+        popback_id=request.GET.get("popback_id")
         formclass=self.get_model_form_class() #获取model_class
         if request.method=="GET":
             form = formclass()
+
         else:
             condition=request.GET.get("_filter_list")
             form=formclass(request.POST)
             if form.is_valid():
-                form.save()
+                new_obj=form.save()
+                if popback_id:
+                    result = {'id': new_obj.pk, 'text': str(new_obj), 'popbackid': popback_id}
+                    return render(request,"crud/pop_response.html",{"result":json.dumps(result)})
                 return redirect('%s?%s'%(self.get_changelist_url(),condition))
         return render(request, "crud/add.html", {"form": form})
     def delete_view(self,request,nid):

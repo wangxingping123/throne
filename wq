@@ -1,0 +1,35 @@
+[33mcommit b53a4fb278197683e5aff6e7cf5c313433eafe01[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m
+Author: wxp <2532648458@qq.com>
+Date:   Thu Dec 21 15:57:22 2017 +0800
+
+    组合搜索bug解决
+
+[33mcommit fc8bbc18f0a28d08f202d44f49d5e6f9ef10b2d9[m[33m ([m[1;31morigin/master[m[33m, [m[1;32mdev[m[33m)[m
+Author: wxp <2532648458@qq.com>
+Date:   Thu Dec 21 15:11:56 2017 +0800
+
+    组合搜索功能开发完毕
+
+[33mcommit 5ebb2386b57e53e5e9451ad9a8bb015dd29dc584[m
+Author: wxp <2532648458@qq.com>
+Date:   Tue Dec 19 20:14:05 2017 +0800
+
+    关键字搜索，批量操作，分页等功能已开发完毕
+
+[33mcommit 12c69342520eff2a8dd1ba80a23e65a4c19b2fca[m
+Author: wxp <2532648458@qq.com>
+Date:   Fri Dec 15 16:47:40 2017 +0800
+
+    基本的增删改成功能开发完毕
+
+[33mcommit 72c0022bc1a4b65d2301c9db71f33006dbbb24d9[m
+Author: wxp <2532648458@qq.com>
+Date:   Fri Dec 15 08:23:23 2017 +0800
+
+    数据库表记录显示功能开发完毕
+
+[33mcommit 15e85d0f6dc6438df3b94877fa74e2780f58c661[m
+Author: wxp <2532648458@qq.com>
+Date:   Thu Dec 14 16:34:52 2017 +0800
+
+    项目开始，url的自动生成
